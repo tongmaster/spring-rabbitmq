@@ -25,7 +25,9 @@ import com.example.demo.MessageSender;
 import com.example.demo.model.Application;
 import com.example.demo.model.CustomField;
 import com.example.demo.model.CustomFieldId;
+import com.example.demo.model.DeviceDetail;
 import com.example.demo.model.Message;
+import com.example.demo.model.MessageResponse;
 import com.example.demo.model.Notif;
 import com.example.demo.model.Payload;
 import com.example.demo.model.Receiver;
@@ -152,16 +154,48 @@ public class UserService {
 	
 	
 	@PostMapping("/addtoken")
-	public ResponseEntity<?> addToken(@RequestBody TokenDevice token) {
+	public ResponseEntity<?> addToken(@RequestBody DeviceDetail device) {
 		
 		/* Sending to Message Queue */
-		System.out.println(token.toString());
+		System.out.println(device.toString());
 		try {
-			tokenDeviceService.saveOrUpdate(token);
-			return new ResponseEntity<>("insert ok", HttpStatus.CREATED);
+			
+			TokenDevice deviceData = tokenDeviceService.findTokenByDeviceDet(device.getPerid(),device.getAppId(),device.getUuid());
+			if(deviceData.getToken() != null && !"".equals(deviceData.getToken())) {
+				if(!deviceData.getToken().equals(device.getToken())) {
+					int updateData = tokenDeviceService.updateTokenByDeviceDet(device.getToken(),device.getPerid(),device.getAppId(),device.getUuid());
+					MessageResponse response = new MessageResponse();
+					response.setMsg("token update "+updateData);
+					response.setStatus(0);
+					return new ResponseEntity<MessageResponse>(response, HttpStatus.OK);
+				}else {
+					MessageResponse response = new MessageResponse();
+					response.setMsg("token existing");
+					response.setStatus(0);
+					return new ResponseEntity<MessageResponse>(response, HttpStatus.OK);
+				}
+				
+			}else {
+				TokenDevice tdevice = new TokenDevice();
+				tdevice.setAppId(device.getAppId());
+				tdevice.setActive(true);
+				tdevice.setToken(device.getToken());
+				tdevice.setOsType(TokenDevice.enum_os.valueOf(device.getPlatform().toUpperCase()));
+				tdevice.setUserRef(device.getPerid());
+				tdevice.setDeviceDet(device.getUuid());
+				tokenDeviceService.saveOrUpdate(tdevice);
+				MessageResponse response = new MessageResponse();
+				response.setMsg("insert token success ");
+				response.setStatus(0);
+				return new ResponseEntity<MessageResponse>(response, HttpStatus.OK);
+			}
+			
 		} catch (Exception ex) {
 			log.error("Exception occurred while save application ", ex);
-			return new ResponseEntity("error : "+ex.getMessage(), HttpStatus.BAD_REQUEST);
+			MessageResponse response = new MessageResponse();
+			response.setMsg(ex.getMessage());
+			response.setStatus(1);
+			return new ResponseEntity<MessageResponse>(response, HttpStatus.BAD_REQUEST);
 		}
 	}
 	
@@ -248,7 +282,89 @@ public class UserService {
 					receiverBody.setReceiverId(receiverId);
 					recService.saveOrUpdate(receiverBody);
 					body.put("to", listUserRef.get(0).getToken());
-				}else {
+					
+					
+					if(message.getData() != null && message.getData().size() > 0) {
+						CustomFieldId g = null;
+						CustomField h = null;
+						JSONObject data = new JSONObject();
+						for (Map.Entry<String, String> entry : message.getData().entrySet()) {
+							g =  new CustomFieldId();
+							h =  new CustomField();
+							g.setMsgId(id);
+							g.setKeyName(entry.getKey());
+							h.setCustomFieldId(g);
+							h.setKeyValue(entry.getValue());
+							System.out.println("Item : " + entry.getKey() + " Count : " + entry.getValue());
+							customService.saveOrUpdate(h);
+							data.put(entry.getKey(), entry.getValue());
+						}
+						body.put("data", data);
+					}
+					
+					
+					System.out.println(message.getUserRef().get(0));
+					
+					/*
+					if (message.getMessage().getPriority() != null && !"".equals(message.getMessage().getPriority()))
+						body.put("priority", message.getMessage().getPriority());*/
+
+					JSONObject notification = new JSONObject();
+					notification.put("title", message.getMessage().getTitle());
+					notification.put("text", message.getMessage().getBody());
+					notification.put("sound", message.getMessage().getSound());
+					notification.put("badge", message.getMessage().getBadge());
+					notification.put("click_action", message.getMessage().getClickAction());
+					//notification.put("icon", message.getMessage().getPriority());
+
+				
+				
+
+					body.put("notification", notification);
+					
+					System.out.println(body.toString());
+					Notif notif = new Notif();
+					notif.setMsgId(id);
+					notif.setQueueStatus("N");
+					notif.setRequestBody(body.toString());
+					notif.setSendStatus("N");
+					notif.setTokenId(listUserRef.get(0).getTokenId());
+					notifService.saveOrUpdate(notif);
+					
+					
+					HttpEntity<String> request = new HttpEntity<>(body.toString());
+
+					CompletableFuture<String> pushNotification = androidPushNotificationsService.send(request);
+					CompletableFuture.allOf(pushNotification).join();
+					String resp = pushNotification.get();
+					System.out.println(" >>> "+resp);
+					JSONObject res = new JSONObject(resp);
+					
+					/*Notif notifRes = new Notif();
+					notifRes.setMsgId(id);
+					notifRes.setQueueStatus("S");
+					notifRes.setRequestBody(resp);*/
+					notif.setResponseBody(resp);
+					if(res.has("success") &&  res.getInt("success") > 0)
+						notif.setSendStatus("S");
+					else
+						notif.setSendStatus("F");
+					//notif.setTokenId(listUserRef.get(0).getTokenId());
+					notifService.saveOrUpdate(notif);
+						
+					MessageResponse response = new MessageResponse();
+					response.setMsg("insert token success ");
+					response.setStatus(0);
+					//response.setData(resp);
+					return new ResponseEntity<MessageResponse>(response, HttpStatus.CREATED);
+				}
+				else {
+					MessageResponse response = new MessageResponse();
+					response.setMsg("no data");
+					response.setStatus(1);
+					return new ResponseEntity<MessageResponse>(response, HttpStatus.BAD_REQUEST);
+				}	
+				/*else {
 					JSONArray jarray = new JSONArray();
 					for (int i = 0; i < message.getUserRef().size(); i++) {
 						receiverBody = new Receiver();
@@ -260,85 +376,23 @@ public class UserService {
 						recService.saveOrUpdate(receiverBody);
 					}
 					body.put("registration_ids",jarray);
-				}
-				if(message.getData() != null && message.getData().size() > 0) {
-					CustomFieldId g = null;
-					CustomField h = null;
-					JSONObject data = new JSONObject();
-					for (Map.Entry<String, String> entry : message.getData().entrySet()) {
-						g =  new CustomFieldId();
-						h =  new CustomField();
-						g.setMsgId(id);
-						g.setKeyName(entry.getKey());
-						h.setCustomFieldId(g);
-						h.setKeyValue(entry.getValue());
-						System.out.println("Item : " + entry.getKey() + " Count : " + entry.getValue());
-						customService.saveOrUpdate(h);
-						data.put(entry.getKey(), entry.getValue());
-					}
-					body.put("data", data);
-				}
+				}*/
 				
-				
-				System.out.println(message.getUserRef().get(0));
-				
-				/*
-				if (message.getMessage().getPriority() != null && !"".equals(message.getMessage().getPriority()))
-					body.put("priority", message.getMessage().getPriority());*/
-
-				JSONObject notification = new JSONObject();
-				notification.put("title", message.getMessage().getTitle());
-				notification.put("text", message.getMessage().getBody());
-				notification.put("sound", message.getMessage().getSound());
-				notification.put("badge", message.getMessage().getBadge());
-				notification.put("click_action", message.getMessage().getClickAction());
-				//notification.put("icon", message.getMessage().getPriority());
-
-			
-			
-
-				body.put("notification", notification);
-				
-				System.out.println(body.toString());
-				Notif notif = new Notif();
-				notif.setMsgId(id);
-				notif.setQueueStatus("N");
-				notif.setRequestBody(body.toString());
-				notif.setSendStatus("N");
-				//notif.setTokenId(listUserRef.get(0).getTokenId());
-				notifService.saveOrUpdate(notif);
-				
-				
-				HttpEntity<String> request = new HttpEntity<>(body.toString());
-
-				CompletableFuture<String> pushNotification = androidPushNotificationsService.send(request);
-				CompletableFuture.allOf(pushNotification).join();
-				String resp = pushNotification.get();
-				System.out.println(" >>> "+resp);
-				JSONObject res = new JSONObject(resp);
-				
-				/*Notif notifRes = new Notif();
-				notifRes.setMsgId(id);
-				notifRes.setQueueStatus("S");
-				notifRes.setRequestBody(resp);*/
-				notif.setResponseBody(resp);
-				if(res.has("success") &&  res.getInt("success") > 0)
-					notif.setSendStatus("S");
-				else
-					notif.setSendStatus("F");
-				//notif.setTokenId(listUserRef.get(0).getTokenId());
-				notifService.saveOrUpdate(notif);
-					
-				return new ResponseEntity<>("insert ok", HttpStatus.CREATED);
 			}
 			else {
-				return new ResponseEntity("not data", HttpStatus.BAD_REQUEST);
+				MessageResponse response = new MessageResponse();
+				response.setMsg("no data");
+				response.setStatus(1);
+				return new ResponseEntity<MessageResponse>(response, HttpStatus.BAD_REQUEST);
 			}	
 				
 			
 		} catch (Exception ex) {
 			log.error("Exception occurred while save application ", ex);
-			return new ResponseEntity("error : "+ex.getMessage(), HttpStatus.BAD_REQUEST);
+			MessageResponse response = new MessageResponse();
+			response.setMsg(ex.getMessage());
+			response.setStatus(-1);
+			return new ResponseEntity<MessageResponse>(response, HttpStatus.BAD_REQUEST);
 		}
 	}
 }

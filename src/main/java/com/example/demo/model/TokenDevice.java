@@ -10,6 +10,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.NamedQuery;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
 import org.hibernate.annotations.Type;
@@ -31,7 +32,11 @@ public class TokenDevice {
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private Long id;*/
 	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	@SequenceGenerator(name="token_generator",
+    sequenceName="push_notif.token_token_id_seq",
+    allocationSize=1)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE,
+	generator="token_generator")
 	@Column(name="token_id")
 	private Integer tokenId;
 	@Column(name="device_det")
