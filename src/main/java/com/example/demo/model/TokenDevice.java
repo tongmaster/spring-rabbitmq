@@ -1,21 +1,28 @@
 package com.example.demo.model;
 
+import java.io.Serializable;
 import java.sql.Timestamp;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.NamedQuery;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.vladmihalcea.hibernate.type.basic.PostgreSQLEnumType;
 
 
@@ -25,8 +32,12 @@ import com.vladmihalcea.hibernate.type.basic.PostgreSQLEnumType;
 	    name = "enum_os",
 	    typeClass = PostgreSQLEnumType.class
 	)
-public class TokenDevice {
+public class TokenDevice implements Serializable{
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	public static enum enum_os {IOS, ANDROID}
 	/*
 	@GeneratedValue(strategy = GenerationType.AUTO)
@@ -41,7 +52,8 @@ public class TokenDevice {
 	private Integer tokenId;
 	@Column(name="device_det")
 	private String deviceDet;
-	
+	@Column(name="device_uuid")
+	private String deviceUuid;
 	//@Enumerated(EnumType.STRING)
 	//@Enumerated(EnumType.STRING)
 	//@Column(name="os_type" ,columnDefinition="enum_os")
@@ -51,21 +63,35 @@ public class TokenDevice {
 	private enum_os osType;
 	
 	
-	@Column(name="app_id")
-	private int appId;
+/*	@Column(name="app_id")
+	private Integer appId;*/
+	
+	
 	@Column(name="user_ref")
 	private String userRef;
 	@Column(name="token")
 	private String token;
-	@Column(name="expire_time")
-	private Timestamp expireTime;
-	@Column(name="is_active")
-	private boolean isActive;
+	
+	@Column(name="last_login" ,columnDefinition = "TIMESTAMP WITHOUT TIME ZONE")
+	@CreationTimestamp
+	private Timestamp lastLogin;
+
+	
+	@ManyToOne
+	@JoinColumn(name="appId")
+	@JsonBackReference
+	//@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+	private Application application;
 	
 	
 
 	
-	
+	public Application getApplication() {
+		return application;
+	}
+	public void setApplication(Application application) {
+		this.application = application;
+	}
 	public enum_os getOsType() {
 		return osType;
 	}
@@ -86,12 +112,25 @@ public class TokenDevice {
 	}
 
 
-	public int getAppId() {
+
+	public String getDeviceUuid() {
+		return deviceUuid;
+	}
+	public void setDeviceUuid(String deviceUuid) {
+		this.deviceUuid = deviceUuid;
+	}
+	public Timestamp getLastLogin() {
+		return lastLogin;
+	}
+	public void setLastLogin(Timestamp lastLogin) {
+		this.lastLogin = lastLogin;
+	}
+	/*	public Integer getAppId() {
 		return appId;
 	}
-	public void setAppId(int appId) {
+	public void setAppId(Integer appId) {
 		this.appId = appId;
-	}
+	}*/
 	public String getUserRef() {
 		return userRef;
 	}
@@ -104,24 +143,15 @@ public class TokenDevice {
 	public void setToken(String token) {
 		this.token = token;
 	}
-	public Timestamp getExpireTime() {
-		return expireTime;
-	}
-	public void setExpireTime(Timestamp expireTime) {
-		this.expireTime = expireTime;
-	}
-	public boolean isActive() {
-		return isActive;
-	}
-	public void setActive(boolean isActive) {
-		this.isActive = isActive;
-	}
 	@Override
 	public String toString() {
-		return "TokenDevice [tokenId=" + tokenId + ", deviceDet=" + deviceDet + ", osType=" + osType + ", appId="
-				+ appId + ", userRef=" + userRef + ", token=" + token + ", expireTime=" + expireTime + ", isActive="
-				+ isActive + "]";
+		return "TokenDevice [tokenId=" + tokenId + ", deviceDet=" + deviceDet + ", deviceUuid=" + deviceUuid
+				+ ", osType=" + osType + ", userRef=" + userRef + ", token=" + token + ", lastLogin=" + lastLogin
+				+ ", application=" + application + "]";
 	}
+
+
+
 	
 	
 	

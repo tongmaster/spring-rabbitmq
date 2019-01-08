@@ -15,7 +15,7 @@ public class ApplicationService {
     @Autowired
     ApplicationRepository appRepository;
     public void saveOrUpdate(Application app) {
-    	System.out.println( app.getApplicationDetail());
+    	System.out.println( app.getAppName());
     	appRepository.save(app);
     }
     

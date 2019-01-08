@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.model.Application;
+import com.example.demo.model.FcmResponse;
 import com.example.demo.model.Message;
 import com.example.demo.model.PayloadLog;
 import com.example.demo.model.TokenDevice;
@@ -115,7 +116,7 @@ public class NotificationController {
 	 */
 
 	@GetMapping("/send")
-	public ResponseEntity<String> send() throws JSONException {
+	public ResponseEntity<?> send() throws JSONException {
 
 		JSONObject body = new JSONObject();
 
@@ -148,13 +149,13 @@ public class NotificationController {
 
 		HttpEntity<String> request = new HttpEntity<>(body.toString());
 
-		CompletableFuture<String> pushNotification = androidPushNotificationsService.send(request);
+		CompletableFuture<FcmResponse> pushNotification = androidPushNotificationsService.send(request);
 		CompletableFuture.allOf(pushNotification).join();
 
 		try {
-			String firebaseResponse = pushNotification.get();
+			FcmResponse firebaseResponse = pushNotification.get();
 
-			return new ResponseEntity<>(firebaseResponse, HttpStatus.OK);
+			return new ResponseEntity<FcmResponse>(firebaseResponse, HttpStatus.OK);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		} catch (ExecutionException e) {

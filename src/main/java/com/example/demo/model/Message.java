@@ -13,6 +13,8 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.GenerationTime;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
 
@@ -47,9 +49,11 @@ public class Message {
 
     //@Temporal(TemporalType.TIMESTAMP)
 	//@Convert(converter = LocalDateTimeConverter.class)
-	@Column(name="send_time" ,columnDefinition = "TIMESTAMP WITHOUT TIME ZONE")
+	
 	//@Generated(GenerationTime.INSERT)
 	//@Temporal(TemporalType.TIMESTAMP)
+	@Column(name="send_time" ,columnDefinition = "TIMESTAMP WITHOUT TIME ZONE")
+	//@Generated(GenerationTime.INSERT)
 	@CreationTimestamp
 	private Timestamp sendTime;
 	@Column(name="priority")

@@ -1,11 +1,20 @@
 package com.example.demo.model;
 
 import java.io.Serializable;
+import java.util.List;
+import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import io.micrometer.core.lang.Nullable;
 
 @Entity
 @Table(name = "Application")
@@ -52,29 +61,68 @@ public class Application implements Serializable {
 	*/
 	@Id
 	@Column(name="app_id")
-	private Integer applicationId;
+	private Integer appId;
 	@Column(name="app_name")
-	private String applicationDetail;
+	private String appName;
 	@Column(name="is_active")
-	private boolean applicationEnable;
-	public Integer getApplicationId() {
-		return applicationId;
+	private boolean isActive;
+	@Column(name="max_inactive_day")
+	private int maxInactiveDay;
+	
+	@OneToMany(mappedBy="application" , cascade = CascadeType.ALL /*,orphanRemoval = true*/)
+	@JsonManagedReference
+	private  Set<TokenDevice> token; 
+	
+	
+	public Integer getAppId() {
+		return appId;
 	}
-	public void setApplicationId(Integer applicationId) {
-		this.applicationId = applicationId;
+	public void setAppId(Integer appId) {
+		this.appId = appId;
 	}
-	public String getApplicationDetail() {
-		return applicationDetail;
+	public String getAppName() {
+		return appName;
 	}
-	public void setApplicationDetail(String applicationDetail) {
-		this.applicationDetail = applicationDetail;
+	public void setAppName(String appName) {
+		this.appName = appName;
 	}
-	public boolean isApplicationEnable() {
-		return applicationEnable;
+	public boolean isActive() {
+		return isActive;
 	}
-	public void setApplicationEnable(boolean applicationEnable) {
-		this.applicationEnable = applicationEnable;
+	public void setActive(boolean isActive) {
+		this.isActive = isActive;
 	}
+	
+	public int getMaxInactiveDay() {
+		return maxInactiveDay;
+	}
+	public void setMaxInactiveDay(int maxInactiveDay) {
+		this.maxInactiveDay = maxInactiveDay;
+	}
+	public Set<TokenDevice> getToken() {
+		return token;
+	}
+	public void setToken(Set<TokenDevice> token) {
+		this.token = token;
+	}
+	
+
+	/*@OneToMany(cascade = CascadeType.ALL)
+	@JoinColumn(name="app_id", referencedColumnName="app_id")
+	private  Set<TokenDevice> tokenDevice;
+	
+
+	
+	
+	public Set<TokenDevice> getTokenDevice() {
+		return tokenDevice;
+	}
+	public void setTokenDevice(Set<TokenDevice> tokenDevice) {
+		this.tokenDevice = tokenDevice;
+	}*/
+	
+	
+	
 	
 	
 	

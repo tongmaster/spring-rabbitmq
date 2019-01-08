@@ -14,6 +14,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.example.demo.model.FcmResponse;
+
 @Service
 public class AndroidPushNotificationsService {
 	//private static final String FIREBASE_SERVER_KEY = "Your Server Key here!";
@@ -23,7 +25,7 @@ public class AndroidPushNotificationsService {
     private  String authKey;
     
 	@Async
-	public CompletableFuture<String> send(HttpEntity<String> entity) {
+	public CompletableFuture<FcmResponse> send(HttpEntity<String> entity) {
  
 		RestTemplate restTemplate = new RestTemplate();
  
@@ -41,7 +43,7 @@ public class AndroidPushNotificationsService {
 		restTemplate.getMessageConverters().add(0,new StringHttpMessageConverter(Charset.forName("UTF-8")));
 		System.out.println(entity);
  
-		String firebaseResponse = restTemplate.postForObject(FIREBASE_API_URL, entity, String.class);
+		FcmResponse firebaseResponse = restTemplate.postForObject(FIREBASE_API_URL, entity, FcmResponse.class);
 		//ResponseEntity<String> firebaseResponse = restTemplate.exchange(FIREBASE_API_URL,HttpMethod.POST, entity, String.class);
 		System.out.println(firebaseResponse);
 		 

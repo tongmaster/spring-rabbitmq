@@ -2,9 +2,9 @@ package com.example.demo.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +26,7 @@ import com.example.demo.model.Application;
 import com.example.demo.model.CustomField;
 import com.example.demo.model.CustomFieldId;
 import com.example.demo.model.DeviceDetail;
+import com.example.demo.model.FcmResponse;
 import com.example.demo.model.Message;
 import com.example.demo.model.MessageResponse;
 import com.example.demo.model.Notif;
@@ -135,20 +136,38 @@ public class UserService {
 		/* Sending to Message Queue */
 		try {
 			appService.saveOrUpdate(app);
-			return new ResponseEntity<>("insert ok", HttpStatus.CREATED);
+			MessageResponse<?> response = new MessageResponse();
+			response.setMsg("insert success");
+			response.setStatus(0);
+			return new ResponseEntity<>(response, HttpStatus.CREATED);
 		} catch (Exception ex) {
+			MessageResponse<?> response = new MessageResponse();
+			response.setMsg("insert error "+ex.getMessage());
+			response.setStatus(-1);
 			log.error("Exception occurred while save application ", ex);
-			return new ResponseEntity("error : "+ex.getMessage(), HttpStatus.BAD_REQUEST);
+			return new ResponseEntity(response, HttpStatus.BAD_REQUEST);
 		}
 	}
 	
 	
 	@GetMapping("/getapp")
-	public ResponseEntity<List<Application>> getAllApplication() {
-		// androidPushNotificationsService.send(entity)
-		// System.out.println("data token >> "+name+"
-		// "+String.format(placeholderConfig.getProperty("test")));
+	public ResponseEntity<List<?>> getAllApplication() {
+		
 		List<Application> list = appService.getAllApp();
+		for (Application application : list) {
+			Set<TokenDevice> setofdevice = application.getToken();
+			for (TokenDevice setdata : setofdevice) {
+				System.out.println(setdata.getDeviceDet());
+			}
+		}
+		
+		/*
+		List<TokenDevice> token = tokenDeviceService.getAllToken();
+		for (TokenDevice tokenDevice : token) {
+			Application app = tokenDevice.getApplication();
+			System.out.println(app.getAppName());
+		}
+		*/
 		return new ResponseEntity<>(list, HttpStatus.OK);
 	}
 	
@@ -161,7 +180,7 @@ public class UserService {
 		try {
 			
 			TokenDevice deviceData = tokenDeviceService.findTokenByDeviceDet(device.getPerid(),device.getAppId(),device.getUuid());
-			if(deviceData.getToken() != null && !"".equals(deviceData.getToken())) {
+			if(deviceData != null && deviceData.getToken() != null && !"".equals(deviceData.getToken())) {
 				if(!deviceData.getToken().equals(device.getToken())) {
 					int updateData = tokenDeviceService.updateTokenByDeviceDet(device.getToken(),device.getPerid(),device.getAppId(),device.getUuid());
 					MessageResponse response = new MessageResponse();
@@ -176,13 +195,17 @@ public class UserService {
 				}
 				
 			}else {
+				log.error(">>>>>"+device.getAppId());
 				TokenDevice tdevice = new TokenDevice();
-				tdevice.setAppId(device.getAppId());
-				tdevice.setActive(true);
+				Application appmodel = new Application();
+				appmodel.setAppId(device.getAppId());
+				tdevice.setApplication(appmodel);
 				tdevice.setToken(device.getToken());
 				tdevice.setOsType(TokenDevice.enum_os.valueOf(device.getPlatform().toUpperCase()));
 				tdevice.setUserRef(device.getPerid());
-				tdevice.setDeviceDet(device.getUuid());
+				tdevice.setDeviceDet(device.getModel() == null ? "" :device.getModel());
+				tdevice.setDeviceUuid(device.getUuid());
+				//tdevice.setLastLogin("");
 				tokenDeviceService.saveOrUpdate(tdevice);
 				MessageResponse response = new MessageResponse();
 				response.setMsg("insert token success ");
@@ -194,7 +217,7 @@ public class UserService {
 			log.error("Exception occurred while save application ", ex);
 			MessageResponse response = new MessageResponse();
 			response.setMsg(ex.getMessage());
-			response.setStatus(1);
+			response.setStatus(-1);
 			return new ResponseEntity<MessageResponse>(response, HttpStatus.BAD_REQUEST);
 		}
 	}
@@ -209,6 +232,21 @@ public class UserService {
 		try {
 			messageService.saveOrUpdate(message);
 			return new ResponseEntity<>("insert ok", HttpStatus.CREATED);
+		} catch (Exception ex) {
+			log.error("Exception occurred while save application ", ex);
+			return new ResponseEntity("error : "+ex.getMessage(), HttpStatus.BAD_REQUEST);
+		}
+	}
+	
+	
+	@PostMapping("/qmsg")
+	public ResponseEntity<?> qMsg(@RequestBody Payload message) {
+		
+		/* Sending to Message Queue */
+		System.out.println(message.toString());
+		try {
+			//messageService.saveOrUpdate(message);
+			return new ResponseEntity<>(message, HttpStatus.OK);
 		} catch (Exception ex) {
 			log.error("Exception occurred while save application ", ex);
 			return new ResponseEntity("error : "+ex.getMessage(), HttpStatus.BAD_REQUEST);
@@ -334,9 +372,9 @@ public class UserService {
 					
 					HttpEntity<String> request = new HttpEntity<>(body.toString());
 
-					CompletableFuture<String> pushNotification = androidPushNotificationsService.send(request);
+					CompletableFuture<FcmResponse> pushNotification = androidPushNotificationsService.send(request);
 					CompletableFuture.allOf(pushNotification).join();
-					String resp = pushNotification.get();
+					FcmResponse resp = pushNotification.get();
 					System.out.println(" >>> "+resp);
 					JSONObject res = new JSONObject(resp);
 					
@@ -344,7 +382,7 @@ public class UserService {
 					notifRes.setMsgId(id);
 					notifRes.setQueueStatus("S");
 					notifRes.setRequestBody(resp);*/
-					notif.setResponseBody(resp);
+					notif.setResponseBody(resp.toString());
 					if(res.has("success") &&  res.getInt("success") > 0)
 						notif.setSendStatus("S");
 					else
@@ -352,14 +390,14 @@ public class UserService {
 					//notif.setTokenId(listUserRef.get(0).getTokenId());
 					notifService.saveOrUpdate(notif);
 						
-					MessageResponse response = new MessageResponse();
+					MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
 					response.setMsg("insert token success ");
 					response.setStatus(0);
-					//response.setData(resp);
+					response.setData(resp);
 					return new ResponseEntity<MessageResponse>(response, HttpStatus.CREATED);
 				}
 				else {
-					MessageResponse response = new MessageResponse();
+					MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
 					response.setMsg("no data");
 					response.setStatus(1);
 					return new ResponseEntity<MessageResponse>(response, HttpStatus.BAD_REQUEST);
@@ -377,10 +415,27 @@ public class UserService {
 					}
 					body.put("registration_ids",jarray);
 				}*/
-				
+		/*		{
+				    "status": 0,
+				    "msg": "insert token success ",
+				    "dataList": null,
+				    "data": {
+				        "multicast_id": 8959419236452098199,
+				        "success": 1,
+				        "failure": 0,
+				        "canonical_ids": 0,
+				        "results": [
+				            {
+				                "message_id": "0:1546829975310361%16bca38416bca384",
+				                "registration_id": null,
+				                "error": null
+				            }
+				        ]
+				    }
+				}*/
 			}
 			else {
-				MessageResponse response = new MessageResponse();
+				MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
 				response.setMsg("no data");
 				response.setStatus(1);
 				return new ResponseEntity<MessageResponse>(response, HttpStatus.BAD_REQUEST);
