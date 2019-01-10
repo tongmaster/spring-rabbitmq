@@ -1,20 +1,16 @@
 package com.example.demo.model;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-
-import io.micrometer.core.lang.Nullable;
 
 @Entity
 @Table(name = "Application")
@@ -73,6 +69,10 @@ public class Application implements Serializable {
 	@JsonManagedReference
 	private  Set<TokenDevice> token; 
 	
+	@OneToMany(mappedBy="application" , cascade = CascadeType.ALL /*,orphanRemoval = true*/)
+	@JsonManagedReference
+	private  Set<Message> message; 
+	
 	
 	public Integer getAppId() {
 		return appId;
@@ -105,6 +105,13 @@ public class Application implements Serializable {
 	public void setToken(Set<TokenDevice> token) {
 		this.token = token;
 	}
+	public Set<Message> getMessage() {
+		return message;
+	}
+	public void setMessage(Set<Message> message) {
+		this.message = message;
+	}
+	
 	
 
 	/*@OneToMany(cascade = CascadeType.ALL)

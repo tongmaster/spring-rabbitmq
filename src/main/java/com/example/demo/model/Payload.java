@@ -1,6 +1,5 @@
 package com.example.demo.model;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -8,20 +7,21 @@ import java.util.Map;
 public class Payload {
 	
 	
-	private Message message;
-	private List<String> userRef;
+	private MessageRequest message;
+	private List<String> receiver;
 	private Map<String,String> data;
-	public Message getMessage() {
+
+	public MessageRequest getMessage() {
 		return message;
 	}
-	public void setMessage(Message message) {
+	public void setMessage(MessageRequest message) {
 		this.message = message;
 	}
-	public List<String> getUserRef() {
-		return userRef;
+	public List<String> getReceiver() {
+		return receiver;
 	}
-	public void setUserRef(List<String> userRef) {
-		this.userRef = userRef;
+	public void setReceiver(List<String> receiver) {
+		this.receiver = receiver;
 	}
 	public Map<String, String> getData() {
 		return data;
@@ -31,8 +31,9 @@ public class Payload {
 	}
 	@Override
 	public String toString() {
-		return "Payload [message=" + message + ", userRef=" + userRef + ", data=" + data + "]";
+		return "Payload [message=" + message + ", receiver=" + receiver + ", data=" + data + "]";
 	}
+	
 	
 	
 	

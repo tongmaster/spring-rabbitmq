@@ -5,33 +5,20 @@ import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 
-@Embeddable
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 public class CustomFieldId implements Serializable{
-	
-	/**
-	 * 
-	 */
+
 	private static final long serialVersionUID = 1L;
-	
-	@Column(name="msg_id")
+
 	private Integer msgId;
-	@Column(name="key_name")
+
 	private String keyName;
-	
-	public Integer getMsgId() {
-		return msgId;
-	}
-	public void setMsgId(Integer msgId) {
-		this.msgId = msgId;
-	}
-	public String getKeyName() {
-		return keyName;
-	}
-	public void setKeyName(String keyName) {
-		this.keyName = keyName;
-	}
-	
-	
-	
+
+	private String keyValue;
+
+
 }

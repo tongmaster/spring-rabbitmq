@@ -8,34 +8,16 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
-@Embeddable
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 public class ReceiverId implements Serializable {
 	
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
-	@Column(name="msg_id")
 	private Integer msgId;
-	
-	@Column(name="user_ref")
 	private String userRef;
-	public Integer getMsgId() {
-		return msgId;
-	}
-	public void setMsgId(Integer msgId) {
-		this.msgId = msgId;
-	}
-	public String getUserRef() {
-		return userRef;
-	}
-	public void setUserRef(String userRef) {
-		this.userRef = userRef;
-	}
-	
-	
-	
 
 }

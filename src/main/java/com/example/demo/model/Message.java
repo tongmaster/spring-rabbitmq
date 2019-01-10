@@ -1,14 +1,20 @@
 package com.example.demo.model;
 
 import java.sql.Timestamp;
+import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
@@ -18,6 +24,8 @@ import org.hibernate.annotations.GenerationTime;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.vladmihalcea.hibernate.type.basic.PostgreSQLEnumType;
 
 @Entity
@@ -36,8 +44,8 @@ public class Message {
 	generator="msg_generator")
 	@Column(name="msg_id")
 	private Integer msgId;
-	@Column(name="app_id")
-	private Integer appId;
+/*	@Column(name="app_id")
+	private Integer appId;*/
 	
 	@Column(name="msg_type")
 	@Enumerated(EnumType.STRING)
@@ -72,19 +80,44 @@ public class Message {
 	private String clickAction;
 	@Column(name="is_broadcast")
 	private boolean isBroadcast;
+	
+	@ManyToOne
+	@JoinColumn(name="appId")
+	//@JoinColumn
+	@JsonBackReference
+	//@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+	private Application application;
+	
+	/*@OneToMany(mappedBy="message" , cascade = CascadeType.ALL )
+	@JsonManagedReference
+	private  Set<Notif> notif; 
+	*/
+	
+//	@OneToMany(fetch = FetchType.LAZY ,mappedBy="message" , cascade = CascadeType.ALL  )
+//	@JsonManagedReference
+//	private  Set<Receiver> receiver; 
+	
+	
+
+//	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "message")
+//	@JsonManagedReference
+//    private Set<CustomField> customField;
+	
+	
 	public Integer getMsgId() {
 		return msgId;
 	}
 	public void setMsgId(Integer msgId) {
 		this.msgId = msgId;
 	}
-	public Integer getAppId() {
-		return appId;
-	}
-	public void setAppId(Integer appId) {
-		this.appId = appId;
-	}
+
 	
+	public Application getApplication() {
+		return application;
+	}
+	public void setApplication(Application application) {
+		this.application = application;
+	}
 	public enum_msg_type getMsgType() {
 		return msgType;
 	}
@@ -148,13 +181,64 @@ public class Message {
 	public void setBroadcast(boolean isBroadcast) {
 		this.isBroadcast = isBroadcast;
 	}
-	@Override
-	public String toString() {
-		return "Message [msgId=" + msgId + ", appId=" + appId + ", msgType=" + msgType + ", sendTime=" + sendTime
-				+ ", priority=" + priority + ", timeToLive=" + timeToLive + ", title=" + title + ", body=" + body
-				+ ", sound=" + sound + ", badge=" + badge + ", clickAction=" + clickAction + ", isBroadcast="
-				+ isBroadcast + "]";
-	}
 	
+	
+	/*public Set<Notif> getNotif() {
+		return notif;
+	}
+	public void setNotif(Set<Notif> notif) {
+		this.notif = notif;
+	}*/
+	
+	
+/*	public Set<ReceiverId> getReceiverId() {
+		return receiverId;
+	}
+	public void setReceiverId(Set<ReceiverId> receiverId) {
+		this.receiverId = receiverId;
+	}*/
+
+/*	public Integer getAppId() {
+		return appId;
+	}
+	public void setAppId(Integer appId) {
+		this.appId = appId;
+	}*/
+/*	public Set<CustomField> getCustomField() {
+		return customField;
+	}
+	public void setCustomField(Set<CustomField> customField) {
+		this.customField = customField;
+	}
+	public Set<Receiver> getReceiver() {
+		return receiver;
+	}
+	public void setReceiver(Set<Receiver> receiver) {
+		this.receiver = receiver;
+	}*/
+	
+/*	@Override
+	public String toString() {
+		return "Message [msgId=" + msgId + ", msgType=" + msgType + ", sendTime=" + sendTime + ", priority=" + priority
+				+ ", timeToLive=" + timeToLive + ", title=" + title + ", body=" + body + ", sound=" + sound + ", badge="
+				+ badge + ", clickAction=" + clickAction + ", isBroadcast=" + isBroadcast + ", application="
+				+ application + "]";
+	}*/
+	
+	/* @Override
+	    public String toString() {
+	        String result = String.format(
+	                "Category[msgId=%d, msgType='%s']%n",
+	                msgId, msgType);
+	        if (customField != null) {
+	            for(CustomField custom : customField) {
+	                result += String.format(
+	                        "CustomField[msgId=%d, keyname='%s ,keyvalue='%s']%n",
+	                        "", custom.getKeyName(), custom.getKeyValue());
+	            }
+	        }
+
+	        return result;
+	    }*/
 	
 }

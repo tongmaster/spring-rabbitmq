@@ -8,7 +8,11 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
 @Table(name = "notif")
@@ -22,10 +26,10 @@ public class Notif {
 	private Integer msgId;
 	@Column(name="token_id")
 	private Integer tokenId;
-	@Column(name="queue_status")
-	private String queueStatus;
-	@Column(name="send_status")
-	private String sendStatus;
+	@Column(name="notif_status")
+	private String notifStatus;
+	/*@Column(name="send_status")
+	private String sendStatus;*/
 	@Column(name="request_time")
 	//@CreationTimestamp
 	private Timestamp requestTime;
@@ -35,6 +39,11 @@ public class Notif {
 	private String requestBody;
 	@Column(name="response_body")
 	private String responseBody;
+	
+/*	@ManyToOne
+	@JoinColumn(name="msgId")
+	@JsonBackReference
+	private Message message;*/
 
 	public UUID getNotifUuid() {
 		return notifUuid;
@@ -42,6 +51,13 @@ public class Notif {
 	public void setNotifUuid(UUID notifUuid) {
 		this.notifUuid = notifUuid;
 	}
+	
+	/*public Message getMessage() {
+		return message;
+	}
+	public void setMessage(Message message) {
+		this.message = message;
+	}*/
 	public Integer getMsgId() {
 		return msgId;
 	}
@@ -54,18 +70,19 @@ public class Notif {
 	public void setTokenId(Integer tokenId) {
 		this.tokenId = tokenId;
 	}
-	public String getQueueStatus() {
-		return queueStatus;
+	
+	public String getNotifStatus() {
+		return notifStatus;
 	}
-	public void setQueueStatus(String queueStatus) {
-		this.queueStatus = queueStatus;
+	public void setNotifStatus(String notifStatus) {
+		this.notifStatus = notifStatus;
 	}
-	public String getSendStatus() {
+/*	public String getSendStatus() {
 		return sendStatus;
 	}
 	public void setSendStatus(String sendStatus) {
 		this.sendStatus = sendStatus;
-	}
+	}*/
 	public Timestamp getRequestTime() {
 		return requestTime;
 	}
