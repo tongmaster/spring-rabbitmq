@@ -98,12 +98,7 @@ public class TokenDevice implements Serializable{
 	public void setOsType(enum_os osType) {
 		this.osType = osType;
 	}
-	public Integer getTokenId() {
-		return tokenId;
-	}
-	public void setTokenId(Integer tokenId) {
-		this.tokenId = tokenId;
-	}
+
 	public String getDeviceDet() {
 		return deviceDet;
 	}
@@ -113,6 +108,12 @@ public class TokenDevice implements Serializable{
 
 
 
+	public Integer getTokenId() {
+		return tokenId;
+	}
+	public void setTokenId(Integer tokenId) {
+		this.tokenId = tokenId;
+	}
 	public String getDeviceUuid() {
 		return deviceUuid;
 	}
@@ -145,10 +146,11 @@ public class TokenDevice implements Serializable{
 	}
 	@Override
 	public String toString() {
-		return "TokenDevice [tokenId=" + tokenId + ", deviceDet=" + deviceDet + ", deviceUuid=" + deviceUuid
-				+ ", osType=" + osType + ", userRef=" + userRef + ", token=" + token + ", lastLogin=" + lastLogin
-				+ ", application=" + application + "]";
+		return "TokenDevice [deviceDet=" + deviceDet + ", deviceUuid=" + deviceUuid + ", osType=" + osType
+				+ ", userRef=" + userRef + ", token=" + token + ", lastLogin=" + lastLogin + ", application="
+				+ application + "]";
 	}
+
 
 
 

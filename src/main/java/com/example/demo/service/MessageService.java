@@ -26,6 +26,7 @@ public class MessageService {
     }
 
     public Integer saveOrUpdate(Message person) {
+    	//return messageRepository.save(person);
     	Message a = messageRepository.save(person);
     	return a.getMsgId();
     }

@@ -39,6 +39,10 @@ public class TokenDeviceService {
 	        return tokenDeviceRepository.findByUserRef(userRef);
 	    }
 	    
+	    public List<TokenDevice> findTokenByUserRefAndAppId(String userRef, int appId) {
+	    	return tokenDeviceRepository.findTokenByUserRefAndAppId( userRef, appId);
+	    }
+	    
 	    public TokenDevice findTokenByDeviceDet(String userRef, int appId, String deviceDet) {
 	    	return tokenDeviceRepository.findTokenByDeviceDet( userRef, appId, deviceDet);
 	    }

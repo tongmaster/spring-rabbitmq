@@ -24,8 +24,8 @@ public class Notif {
 	private UUID notifUuid;
 	@Column(name="msg_id")
 	private Integer msgId;
-	@Column(name="token_id")
-	private Integer tokenId;
+/*	@Column(name="token_id")
+	private Integer tokenId;*/
 	@Column(name="notif_status")
 	private String notifStatus;
 	/*@Column(name="send_status")
@@ -39,6 +39,9 @@ public class Notif {
 	private String requestBody;
 	@Column(name="response_body")
 	private String responseBody;
+	@Column(name="response_id")
+	private Integer responseId;
+	
 	
 /*	@ManyToOne
 	@JoinColumn(name="msgId")
@@ -64,12 +67,12 @@ public class Notif {
 	public void setMsgId(Integer msgId) {
 		this.msgId = msgId;
 	}
-	public Integer getTokenId() {
+/*	public Integer getTokenId() {
 		return tokenId;
 	}
 	public void setTokenId(Integer tokenId) {
 		this.tokenId = tokenId;
-	}
+	}*/
 	
 	public String getNotifStatus() {
 		return notifStatus;
@@ -107,6 +110,13 @@ public class Notif {
 	public void setResponseBody(String responseBody) {
 		this.responseBody = responseBody;
 	}
+	public Integer getResponseId() {
+		return responseId;
+	}
+	public void setResponseId(Integer responseId) {
+		this.responseId = responseId;
+	}
+	
 /*
 	@PrePersist
 	public void autofill() {

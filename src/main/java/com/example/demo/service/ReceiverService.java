@@ -16,6 +16,7 @@ public class ReceiverService {
 	    ReceiverRepository recRepository;
 	    public void saveOrUpdate(Receiver app) {
 	    	recRepository.save(app);
+	    	
 	    }
 	    
 	    public List<Receiver> getAllReceiver() {

@@ -14,8 +14,9 @@ public class NotifService {
     @Autowired
     NotifLogRepository notifLogRepository;
     
-    public void saveOrUpdate(Notif app) {
-    	notifLogRepository.save(app);
+    public Notif saveOrUpdate(Notif app) {
+    	Notif notif = notifLogRepository.save(app);
+    	return notif;
     }
     
     public List<Notif> getAllNotifLog() {

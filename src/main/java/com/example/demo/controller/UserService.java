@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,19 +26,25 @@ import com.example.config.ApplicationConfigReader;
 import com.example.config.ApplicationConstant;
 import com.example.demo.MessageSender;
 import com.example.demo.model.Application;
+import com.example.demo.model.CodeResponse;
 import com.example.demo.model.CustomField;
 import com.example.demo.model.DeviceDetail;
 import com.example.demo.model.FcmResponse;
+import com.example.demo.model.FcmResult;
 import com.example.demo.model.Message;
 import com.example.demo.model.MessageResponse;
 import com.example.demo.model.Notif;
+import com.example.demo.model.NotifResponse;
 import com.example.demo.model.Payload;
 import com.example.demo.model.Receiver;
 import com.example.demo.model.TokenDevice;
+import com.example.demo.repo.NotifResponseRepository;
 import com.example.demo.service.AndroidPushNotificationsService;
 import com.example.demo.service.ApplicationService;
+import com.example.demo.service.CodeResponseService;
 import com.example.demo.service.CustomService;
 import com.example.demo.service.MessageService;
+import com.example.demo.service.NotifResponseService;
 import com.example.demo.service.NotifService;
 import com.example.demo.service.ReceiverService;
 import com.example.demo.service.TokenDeviceService;
@@ -67,7 +74,15 @@ public class UserService {
 
 	@Autowired
 	NotifService notifService;
+	
+	@Autowired
+	CodeResponseService  codeResponseService;
 
+
+	@Autowired
+	NotifResponseService notifRespService;
+	
+	
 	@Autowired
 	AndroidPushNotificationsService androidPushNotificationsService;
 
@@ -333,6 +348,8 @@ public class UserService {
 			 * java.sql.Timestamp currentTimestamp = new java.sql.Timestamp(0);
 			 * message.getMessage().setSendTime(currentTimestamp);
 			 */
+			
+			
 			if (payload.getReceiver() != null && payload.getReceiver().size() > 0) {
 				JSONObject body = new JSONObject();
 				Application app = new Application();
@@ -349,6 +366,7 @@ public class UserService {
 				msg.setTimeToLive(payload.getMessage().getTimeToLive());
 				msg.setTitle(payload.getMessage().getTitle());
 				Integer id = messageService.saveOrUpdate(msg);
+				
 				Set<Receiver> recSet = new HashSet<Receiver>();
 				List<TokenDevice> listUserRef = null;
 				if (payload.getReceiver().size() == 1) {
@@ -410,7 +428,7 @@ public class UserService {
 //notif.setMsgId(id);
 				notif.setNotifStatus("N");
 				notif.setRequestBody(body.toString());
-				notif.setTokenId(listUserRef.get(0).getTokenId());
+				//notif.setTokenId(listUserRef.get(0).getTokenId());
 				notif.setMsgId(id);
 				Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 				notif.setRequestTime(timestamp);
@@ -446,6 +464,321 @@ public class UserService {
 					
 				return new ResponseEntity(response, HttpStatus.CREATED);
 		
+			} else {
+				MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
+				response.setMsg("no data");
+				response.setStatus(1);
+				return new ResponseEntity(response, HttpStatus.BAD_REQUEST);
+			}
+
+		} catch (Exception ex) {
+			log.error("Exception occurred while save application ", ex);
+			MessageResponse response = new MessageResponse();
+			response.setMsg(ex.getMessage());
+			response.setStatus(-1);
+			return new ResponseEntity(response, HttpStatus.BAD_REQUEST);
+		}
+	}
+	
+	
+	@PostMapping("/push2")
+	public ResponseEntity<?> pushNotification2(@RequestBody Payload payload) {
+
+		/* Sending to Message Queue */
+		System.out.println(payload.toString());
+		Message msg = new Message();
+		try {
+		
+			
+			if (payload.getReceiver() != null && payload.getReceiver().size() > 0) {
+				
+				if(payload.getReceiver().size() == 1) {
+					JSONObject body = new JSONObject();
+					Application app = new Application();
+					app.setAppId(payload.getMessage().getAppId());
+					msg.setApplication(app);
+					msg.setBadge(payload.getMessage().getBadge());
+					msg.setBody(payload.getMessage().getBody());
+					msg.setBroadcast(false);
+					msg.setClickAction(payload.getMessage().getClickAction());
+					msg.setMsgType(Message.enum_msg_type.valueOf(payload.getMessage().getMsgType()));
+					msg.setPriority(payload.getMessage().getPriority());
+					// msg.setSendTime(sendTime);
+					msg.setSound(payload.getMessage().getSound());
+					msg.setTimeToLive(payload.getMessage().getTimeToLive());
+					msg.setTitle(payload.getMessage().getTitle());
+					Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+					msg.setSendTime(timestamp);
+					msg.setQueue(false);
+					msg.setMessageStatus("S");
+					
+					JSONObject notification = new JSONObject();
+					notification.put("title", payload.getMessage().getTitle());
+					notification.put("text", payload.getMessage().getBody());
+					notification.put("sound", payload.getMessage().getSound());
+					notification.put("badge", payload.getMessage().getBadge());
+					notification.put("click_action", payload.getMessage().getClickAction());
+					notification.put("time_to_live", payload.getMessage().getClickAction());
+					body.put("notification", notification);
+					Integer id = messageService.saveOrUpdate(msg);
+					//Set<Receiver> recSet = new HashSet<Receiver>();
+					// insert receiver
+					List<TokenDevice> listUserRef = tokenDeviceService.getTokenByUserRef(payload.getReceiver().get(0));
+					body.put("to", listUserRef.get(0).getToken());
+					Receiver rec = new Receiver();
+					/*rec.setMsgId(id);
+					rec.setUserRef(payload.getReceiver().get(0));
+					rec.setNotifStatus("N");
+					recService.saveOrUpdate(rec);*/
+					
+					//Set<CustomField> cusSet = new HashSet<>();
+					JSONObject data = new JSONObject();
+					if (payload.getData().size() > 0) {
+						CustomField cus = null;
+						for (Map.Entry<String, String> entry : payload.getData().entrySet()) {
+							cus = new CustomField();
+							cus.setMsgId(id);
+							cus.setKeyName(entry.getKey());
+							cus.setKeyValue(entry.getValue());
+							data.put(entry.getKey(), entry.getValue());
+							//cusSet.add(cus);
+							customService.saveOrUpdate(cus);
+							System.out.println(">>>>>>>>>>>> "+entry.getKey()+" "+entry.getValue());
+						}
+					}
+					
+					Notif notif = new Notif();
+					notif.setNotifStatus("N");
+					notif.setRequestBody(body.toString());
+					notif.setMsgId(id);
+					notif.setRequestTime(new Timestamp(System.currentTimeMillis()));
+					HttpEntity<String> request = new HttpEntity<>(body.toString());
+					CompletableFuture<FcmResponse> pushNotification = androidPushNotificationsService.send(request);
+					CompletableFuture.allOf(pushNotification).join();
+					FcmResponse resp = pushNotification.get();
+					System.out.println(" >>> " + resp);
+					JSONObject res = new JSONObject(resp);
+					notif.setResponseBody(res.toString());
+					if (res.has("success") && res.getInt("success") > 0) {
+						notif.setNotifStatus("S");
+						notif.setResponseTime(new Timestamp(System.currentTimeMillis()));
+						rec.setMsgId(id);
+						rec.setUserRef(payload.getReceiver().get(0));
+						rec.setNotifStatus("S");
+						recService.saveOrUpdate(rec);
+					}
+					else {
+						notif.setNotifStatus("F");
+						notif.setResponseTime(new Timestamp(System.currentTimeMillis()));
+						rec.setMsgId(id);
+						rec.setUserRef(payload.getReceiver().get(0));
+						rec.setNotifStatus("F");
+						recService.saveOrUpdate(rec);
+					}
+					
+					// notif.setTokenId(listUserRef.get(0).getTokenId());
+					notifService.saveOrUpdate(notif);
+
+					MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
+					response.setMsg("insert token success ");
+					response.setStatus(0);
+					response.setData(resp);
+						
+					return new ResponseEntity(response, HttpStatus.OK);
+					
+				
+				}
+				else 
+				{
+
+					JSONObject body = new JSONObject();
+					Application app = new Application();
+					app.setAppId(payload.getMessage().getAppId());
+					msg.setApplication(app);
+					msg.setBadge(payload.getMessage().getBadge());
+					msg.setBody(payload.getMessage().getBody());
+					msg.setBroadcast(true);
+					msg.setClickAction(payload.getMessage().getClickAction());
+					msg.setMsgType(Message.enum_msg_type.valueOf(payload.getMessage().getMsgType()));
+					msg.setPriority(payload.getMessage().getPriority());
+					// msg.setSendTime(sendTime);
+					msg.setSound(payload.getMessage().getSound());
+					msg.setTimeToLive(payload.getMessage().getTimeToLive());
+					msg.setTitle(payload.getMessage().getTitle());
+					Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+					msg.setSendTime(timestamp);
+					msg.setQueue(false);
+					msg.setMessageStatus("S");
+					
+					JSONObject notification = new JSONObject();
+					notification.put("title", payload.getMessage().getTitle());
+					notification.put("text", payload.getMessage().getBody());
+					notification.put("sound", payload.getMessage().getSound());
+					notification.put("badge", payload.getMessage().getBadge());
+					notification.put("click_action", payload.getMessage().getClickAction());
+					notification.put("time_to_live", payload.getMessage().getClickAction());
+					body.put("notification", notification);
+					Integer id = messageService.saveOrUpdate(msg);
+					//Set<Receiver> recSet = new HashSet<Receiver>();
+					// insert receiver
+					//List<TokenDevice> listUserRef = tokenDeviceService.getTokenByUserRef(payload.getReceiver().get(0));
+					//body.put("to", listUserRef.get(0).getToken());
+					//Receiver rec = new Receiver();
+					//Set<Receiver> recSet = new HashSet<Receiver>();
+					JSONArray array = new JSONArray();
+					JSONArray arrayToken = new JSONArray();
+					
+					List<TokenDevice> listUserRef = null;
+					for (String recStr : payload.getReceiver()) {
+						listUserRef = tokenDeviceService.findTokenByUserRefAndAppId(recStr, payload.getMessage().getAppId());
+						for (int i = 0; i < listUserRef.size(); i++) {
+							System.out.println("7777777777>>>>>>>>>>>>>> "+listUserRef.get(i).getTokenId()+"  "+listUserRef.get(i).getToken());
+							JSONObject objNotifResp =new JSONObject();
+							objNotifResp.put("tokenId", listUserRef.get(i).getTokenId());
+							objNotifResp.put("token", listUserRef.get(i).getToken());
+							arrayToken.put(listUserRef.get(i).getToken());
+							array.put(objNotifResp);
+						}
+					}
+					System.out.println("99999999999999999>>>>>>>>>>>>>> "+array.length());
+					body.put("registration_ids", arrayToken);
+					System.out.println(body.toString());
+					JSONObject data = new JSONObject();
+					
+					if (payload.getData().size() > 0) {
+						CustomField cus = null;
+						for (Map.Entry<String, String> entry : payload.getData().entrySet()) {
+							cus = new CustomField();
+							cus.setMsgId(id);
+							cus.setKeyName(entry.getKey());
+							cus.setKeyValue(entry.getValue());
+							data.put(entry.getKey(), entry.getValue());
+							//cusSet.add(cus);
+							customService.saveOrUpdate(cus);
+							System.out.println(">>>>>>>>>>>> "+entry.getKey()+" "+entry.getValue());
+						}
+					}
+					
+					Notif notif = new Notif();
+					notif.setNotifStatus("N");
+					notif.setRequestBody(body.toString());
+					notif.setMsgId(id);
+					notif.setRequestTime(new Timestamp(System.currentTimeMillis()));
+					HttpEntity<String> request = new HttpEntity<>(body.toString());
+					CompletableFuture<FcmResponse> pushNotification = androidPushNotificationsService.send(request);
+					CompletableFuture.allOf(pushNotification).join();
+					FcmResponse resp = pushNotification.get();
+					System.out.println(" >>> " + resp);
+					JSONObject res = new JSONObject(resp);
+					
+					notif.setResponseBody(res.toString());
+					if (res.has("success") && res.getInt("success") > 0 &&  res.getInt("failure") == 0) {
+						notif.setNotifStatus("S");
+						notif.setResponseTime(new Timestamp(System.currentTimeMillis()));
+						Receiver rec = null;
+						for (String recStr : payload.getReceiver()) {
+							rec = new Receiver();
+							rec.setMsgId(id);
+							rec.setUserRef(recStr);
+							rec.setNotifStatus("S");
+							recService.saveOrUpdate(rec);
+						}
+						Notif resultNotif = notifService.saveOrUpdate(notif);
+						List<FcmResult> fcmListResp = resp.getResults();
+						for (FcmResult fcmResult : fcmListResp) {
+							System.out.println("success all >> "+fcmResult.getMessage_id());
+							
+						/*	NotifResponse nfr = new NotifResponse();
+							 nfr.setResponseId(0);
+							 nfr.setTokenId();
+							 nfr.setNotifUuid(notifUuid);
+							 notifRespService.saveOrUpdate(nfr);*/
+						}
+						
+					
+					}
+					else 
+					{
+						notif.setNotifStatus("F");
+						notif.setResponseTime(new Timestamp(System.currentTimeMillis()));
+						Receiver rec = null;
+						for (String recStr : payload.getReceiver()) {
+							rec = new Receiver();
+							rec.setMsgId(id);
+							rec.setUserRef(recStr);
+							rec.setNotifStatus("S");
+							recService.saveOrUpdate(rec);
+						}
+						Notif resultNotif = notifService.saveOrUpdate(notif);
+						List<FcmResult> fcmListResp = resp.getResults();
+						for (FcmResult fcmResult : fcmListResp) {
+							System.out.println(fcmResult.getError());
+							System.out.println(fcmResult.getMessage_id());
+							if(fcmResult.getError() != null) {
+								 CodeResponse insertReponseCode = codeResponseService.getCodeRespByName(fcmResult.getError());
+								 if(insertReponseCode != null) {
+									 System.out.println(insertReponseCode.getResponseId());
+									 //notif.setResponseId(insertReponseCode.getResponseId());
+									 for (int i = 0; i < array.length(); i++) {
+										 NotifResponse nfr = new NotifResponse();
+										 nfr.setResponseId(insertReponseCode.getResponseId());
+										 JSONObject obj = array.getJSONObject(i);
+										 nfr.setTokenId(obj.getInt("tokenId"));
+										 nfr.setNotifUuid(resultNotif.getNotifUuid());
+										 notifRespService.saveOrUpdate(nfr);	
+									 }
+									 
+								 } else {
+									 CodeResponse codeRep = new CodeResponse();
+									 List<CodeResponse> lastId =  codeResponseService.findLastId();
+									 codeRep.setResponseId(lastId.get(0).getResponseId()+1);
+									 codeRep.setResponseCode(fcmResult.getError());
+									 CodeResponse a = codeResponseService.saveOrUpdate(codeRep);
+									 
+									 System.out.println("++++++++++++++++++++>>>>>>>>>>>>>> "+a.getResponseId());
+									 //notif.setResponseId(codeRep.getResponseId());
+									 for (int i = 0; i < array.length(); i++) {
+										 NotifResponse nfr = new NotifResponse();
+										 nfr.setResponseId(a.getResponseId());
+										 JSONObject obj = array.getJSONObject(i);
+										 nfr.setTokenId(obj.getInt("tokenId"));
+										 nfr.setNotifUuid(resultNotif.getNotifUuid());
+										 notifRespService.saveOrUpdate(nfr);	
+									 }
+								 }
+								 
+							}else {
+								System.out.println("8888888888888888>>>>>>>>>>>>>> "+resultNotif.getNotifUuid());
+								for (int i = 0; i < array.length(); i++) {
+								
+									 NotifResponse nfr = new NotifResponse();
+									 nfr.setResponseId(0);
+									 JSONObject obj = array.getJSONObject(i);
+									 
+									 nfr.setTokenId(obj.getInt("tokenId"));
+									 nfr.setNotifUuid(resultNotif.getNotifUuid());
+										System.out.println("8888888888888888>>>>>>>>>>>>>> "+resultNotif.getNotifUuid()+"  "+obj.getInt("tokenId")+"  "+0);
+									 notifRespService.saveOrUpdate(nfr); 	
+								 }
+							}
+							
+						}
+					}
+					
+					
+
+					MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
+					response.setMsg("insert token success ");
+					response.setStatus(0);
+					response.setData(resp);
+						
+					return new ResponseEntity(response, HttpStatus.OK);
+					
+				
+				
+				}
+
+				
 			} else {
 				MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
 				response.setMsg("no data");

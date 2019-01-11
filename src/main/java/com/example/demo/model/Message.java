@@ -80,7 +80,10 @@ public class Message {
 	private String clickAction;
 	@Column(name="is_broadcast")
 	private boolean isBroadcast;
-	
+	@Column(name="is_queue")
+	private boolean isQueue;
+	@Column(name="message_status")
+	private String messageStatus;
 	@ManyToOne
 	@JoinColumn(name="appId")
 	//@JoinColumn
@@ -180,6 +183,18 @@ public class Message {
 	}
 	public void setBroadcast(boolean isBroadcast) {
 		this.isBroadcast = isBroadcast;
+	}
+	public boolean isQueue() {
+		return isQueue;
+	}
+	public void setQueue(boolean isQueue) {
+		this.isQueue = isQueue;
+	}
+	public String getMessageStatus() {
+		return messageStatus;
+	}
+	public void setMessageStatus(String messageStatus) {
+		this.messageStatus = messageStatus;
 	}
 	
 	

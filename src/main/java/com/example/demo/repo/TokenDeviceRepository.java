@@ -16,4 +16,6 @@ public interface TokenDeviceRepository extends CrudRepository<TokenDevice, Integ
 		@Modifying
 		@Query(value="UPDATE  push_notif.token set token = ?1 , last_login = now() WHERE user_ref = ?2 and app_id = ?3 and device_uuid = ?4 " , nativeQuery = true)
 	    int updateTokenByDeviceDet(String token ,String userRef, int appId, String deviceDet);
+		@Query(value="SELECT t.* FROM push_notif.token t WHERE t.user_ref = ?1 and t.app_id = ?2  " , nativeQuery = true)
+		List<TokenDevice> findTokenByUserRefAndAppId(String userRef,int appId);
 }
