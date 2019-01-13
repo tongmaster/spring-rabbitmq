@@ -711,7 +711,9 @@ public class UserService {
 						}
 						Notif resultNotif = notifService.saveOrUpdate(notif);
 						List<FcmResult> fcmListResp = resp.getResults();
-						for (FcmResult fcmResult : fcmListResp) {
+						for (int i = 0; i < fcmListResp.size(); i++) {
+							FcmResult fcmResult = fcmListResp.get(i);
+						//for (FcmResult fcmResult : fcmListResp) {
 							System.out.println(fcmResult.getError());
 							System.out.println(fcmResult.getMessage_id());
 							if(fcmResult.getError() != null) {
@@ -719,14 +721,14 @@ public class UserService {
 								 if(insertReponseCode != null) {
 									 System.out.println(insertReponseCode.getResponseId());
 									 //notif.setResponseId(insertReponseCode.getResponseId());
-									 for (int i = 0; i < array.length(); i++) {
+									 //for (int i = 0; i < array.length(); i++) {
 										 NotifResponse nfr = new NotifResponse();
 										 nfr.setResponseId(insertReponseCode.getResponseId());
 										 JSONObject obj = array.getJSONObject(i);
 										 nfr.setTokenId(obj.getInt("tokenId"));
 										 nfr.setNotifUuid(resultNotif.getNotifUuid());
 										 notifRespService.saveOrUpdate(nfr);	
-									 }
+									 //}
 									 
 								 } else {
 									 CodeResponse codeRep = new CodeResponse();
@@ -737,19 +739,19 @@ public class UserService {
 									 
 									 System.out.println("++++++++++++++++++++>>>>>>>>>>>>>> "+a.getResponseId());
 									 //notif.setResponseId(codeRep.getResponseId());
-									 for (int i = 0; i < array.length(); i++) {
+									 //for (int i = 0; i < array.length(); i++) {
 										 NotifResponse nfr = new NotifResponse();
 										 nfr.setResponseId(a.getResponseId());
 										 JSONObject obj = array.getJSONObject(i);
 										 nfr.setTokenId(obj.getInt("tokenId"));
 										 nfr.setNotifUuid(resultNotif.getNotifUuid());
 										 notifRespService.saveOrUpdate(nfr);	
-									 }
+									 //}
 								 }
 								 
 							}else {
 								System.out.println("8888888888888888>>>>>>>>>>>>>> "+resultNotif.getNotifUuid());
-								for (int i = 0; i < array.length(); i++) {
+								//for (int i = 0; i < array.length(); i++) {
 								
 									 NotifResponse nfr = new NotifResponse();
 									 nfr.setResponseId(0);
@@ -759,7 +761,7 @@ public class UserService {
 									 nfr.setNotifUuid(resultNotif.getNotifUuid());
 										System.out.println("8888888888888888>>>>>>>>>>>>>> "+resultNotif.getNotifUuid()+"  "+obj.getInt("tokenId")+"  "+0);
 									 notifRespService.saveOrUpdate(nfr); 	
-								 }
+								// }
 							}
 							
 						}
