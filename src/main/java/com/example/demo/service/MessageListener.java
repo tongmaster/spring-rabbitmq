@@ -12,6 +12,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import com.example.config.ApplicationConfigReader;
 import com.example.config.ApplicationConstant;
 import com.example.demo.dto.UserDetails;
+import com.example.demo.model.Payload;
 
 @Service
 public class MessageListener {
@@ -19,17 +20,21 @@ public class MessageListener {
 	@Autowired
 	ApplicationConfigReader applicationConfigReader;
 
+	
+	@Autowired
+	SendPushNotificationsService pushService;
 	/**
 	 * Message listener for app1
 	 * 
 	 * @param UserDetails a user defined object used for deserialization of message
 	 */
 	@RabbitListener(queues = "${app1.queue.name}")
-	public void receiveMessageForApp1(final UserDetails data) {
+	public void receiveMessageForApp1(final Payload data) {
 		log.info("Received message: {} from app1 queue.", data);
 		try {
 			log.info("Making REST call to the API");
 			// TODO: Code to make REST call
+			pushService.pushNotificationFromQueues(data);
 			
 			log.info("<< Exiting receiveMessageForApp1() after API call.");
 		} catch (HttpClientErrorException ex) {

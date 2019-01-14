@@ -1,11 +1,12 @@
 package com.example.demo.controller;
 
 import java.sql.Timestamp;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -32,13 +33,13 @@ import com.example.demo.model.DeviceDetail;
 import com.example.demo.model.FcmResponse;
 import com.example.demo.model.FcmResult;
 import com.example.demo.model.Message;
+import com.example.demo.model.MessageRequest;
 import com.example.demo.model.MessageResponse;
 import com.example.demo.model.Notif;
 import com.example.demo.model.NotifResponse;
 import com.example.demo.model.Payload;
 import com.example.demo.model.Receiver;
 import com.example.demo.model.TokenDevice;
-import com.example.demo.repo.NotifResponseRepository;
 import com.example.demo.service.AndroidPushNotificationsService;
 import com.example.demo.service.ApplicationService;
 import com.example.demo.service.CodeResponseService;
@@ -291,7 +292,7 @@ public class UserService {
 			 * e.setCustomFieldId(id); e.setKeyValue("b"); Set<CustomField> cus = new
 			 * HashSet<CustomField>(); cus.add(e); message.setCustomField(cus);
 			 */
-	messageService.saveOrUpdate(cus);
+			messageService.saveOrUpdate(cus);
 			return new ResponseEntity<>(cus, HttpStatus.OK);
 		} catch (Exception ex) {
 			log.error("Exception occurred while save application ", ex);
@@ -299,6 +300,7 @@ public class UserService {
 		}
 	}
 /*
+    old version
 	@PostMapping("/addmsgall")
 	public ResponseEntity<?> addMsg(@RequestBody Payload message) {
 
@@ -336,152 +338,199 @@ public class UserService {
 			return new ResponseEntity("error : " + ex.getMessage(), HttpStatus.BAD_REQUEST);
 		}
 	}*/
-
-	@PostMapping("/push")
-	public ResponseEntity<?> pushNotification(@RequestBody Payload payload) {
+	
+	@GetMapping("/msgtoquese")
+	public ResponseEntity<?> initMessageForQueue() {
 
 		/* Sending to Message Queue */
-		System.out.println(payload.toString());
-		Message msg = new Message();
+		String exchange = getApplicationConfig().getApp1Exchange();
+		String routingKey = getApplicationConfig().getApp1RoutingKey();
+		MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
+		List<Message> listMessage = null;
+		Payload payload = null;
+		List<Payload> payList = new ArrayList<Payload>();
 		try {
-			/*
-			 * java.sql.Timestamp currentTimestamp = new java.sql.Timestamp(0);
-			 * message.getMessage().setSendTime(currentTimestamp);
-			 */
-			
-			
-			if (payload.getReceiver() != null && payload.getReceiver().size() > 0) {
-				JSONObject body = new JSONObject();
-				Application app = new Application();
-				app.setAppId(payload.getMessage().getAppId());
-				msg.setApplication(app);
-				msg.setBadge(payload.getMessage().getBadge());
-				msg.setBody(payload.getMessage().getBody());
-				msg.setBroadcast(payload.getMessage().isBroadcast());
-				msg.setClickAction(payload.getMessage().getClickAction());
-				msg.setMsgType(Message.enum_msg_type.valueOf(payload.getMessage().getMsgType()));
-				msg.setPriority(payload.getMessage().getPriority());
-				// msg.setSendTime(sendTime);
-				msg.setSound(payload.getMessage().getSound());
-				msg.setTimeToLive(payload.getMessage().getTimeToLive());
-				msg.setTitle(payload.getMessage().getTitle());
-				Integer id = messageService.saveOrUpdate(msg);
-				
-				Set<Receiver> recSet = new HashSet<Receiver>();
-				List<TokenDevice> listUserRef = null;
-				if (payload.getReceiver().size() == 1) {
-
-					Receiver rec = null;
-					for (String recStr : payload.getReceiver()) {
-						
-						rec = new Receiver();
-						rec.setMsgId(id);
-						rec.setUserRef(recStr);
-						rec.setNotifStatus("N");
-
-						listUserRef = tokenDeviceService.getTokenByUserRef(recStr);
-						body.put("to", listUserRef.get(0).getToken());
-						recSet.add(rec);
-						recService.saveOrUpdate(rec);
-					}
+			listMessage = messageService.findMessageByIsQueueAndStatusN();
+			MessageRequest msgRequest = null;
+			for (int s = 0; s < listMessage.size(); s++) {
+				msgRequest = new MessageRequest();
+				msgRequest.setAppId(listMessage.get(s).getApplication().getAppId());
+				msgRequest.setBadge(listMessage.get(s).getBadge());
+				msgRequest.setBody(listMessage.get(s).getBody());
+				msgRequest.setBroadcast(listMessage.get(s).isBroadcast()); 
+				msgRequest.setClickAction(listMessage.get(s).getClickAction());
+				msgRequest.setMsgId(listMessage.get(s).getMsgId());
+				msgRequest.setMsgType(listMessage.get(s).getMsgType().toString());
+				msgRequest.setPriority(listMessage.get(s).getPriority());
+				msgRequest.setSendTime(listMessage.get(s).getSendTime());
+				msgRequest.setSound(listMessage.get(s).getSound());
+				msgRequest.setTimeToLive(listMessage.get(s).getTimeToLive());
+				msgRequest.setTitle(listMessage.get(s).getTitle());
+				payload = new Payload();
+				payload.setMessage(msgRequest);
+				List<Receiver> rec = recService.findReceiverByMsgId(listMessage.get(s).getMsgId());
+				List<String> receiverData = new ArrayList<String>();
+				for (int i = 0; i < rec.size(); i++) {
+					List<TokenDevice> tokenList = tokenDeviceService.findTokenByUserRefAndAppId(rec.get(i).getUserRef(), listMessage.get(s).getApplication().getAppId());
+					receiverData.add(tokenList.get(i).getUserRef());
 				}
-				//msg.setReceiver(recSet);
-				
-				
-				System.out.println(">>>>>>>>>>>> "+payload.getData().size());
-				Set<CustomField> cusSet = new HashSet<>();
-				JSONObject data = new JSONObject();
-				if (payload.getData().size() > 0) {
-					CustomField cus = null;
-
-					for (Map.Entry<String, String> entry : payload.getData().entrySet()) {
-						cus = new CustomField();
-						cus.setMsgId(id);
-						cus.setKeyName(entry.getKey());
-						cus.setKeyValue(entry.getValue());
-						data.put(entry.getKey(), entry.getValue());
-						cusSet.add(cus);
-						customService.saveOrUpdate(cus);
-						System.out.println(">>>>>>>>>>>> "+entry.getKey()+" "+entry.getValue());
-					}
-					
-				}
-				
-				//msg.setCustomField(cusSet);
-				//body.put("data", data);
-
-				
-				System.out.println(id);
-
-				JSONObject notification = new JSONObject();
-				notification.put("title", payload.getMessage().getTitle());
-				notification.put("text", payload.getMessage().getBody());
-				notification.put("sound", payload.getMessage().getSound());
-				notification.put("badge", payload.getMessage().getBadge());
-				notification.put("click_action", payload.getMessage().getClickAction());
-				// notification.put("icon", message.getMessage().getPriority());
-
-				body.put("notification", notification);
-
-				System.out.println(body.toString());
-				Notif notif = new Notif();
-//notif.setMsgId(id);
-				notif.setNotifStatus("N");
-				notif.setRequestBody(body.toString());
-				//notif.setTokenId(listUserRef.get(0).getTokenId());
-				notif.setMsgId(id);
-				Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-				notif.setRequestTime(timestamp);
-				notifService.saveOrUpdate(notif);
-
-				HttpEntity<String> request = new HttpEntity<>(body.toString());
-
-				CompletableFuture<FcmResponse> pushNotification = androidPushNotificationsService.send(request);
-				CompletableFuture.allOf(pushNotification).join();
-				FcmResponse resp = pushNotification.get();
-				System.out.println(" >>> " + resp);
-				JSONObject res = new JSONObject(resp);
-
-				
-				notif.setResponseBody(res.toString());
-				Timestamp timestamp1 = new Timestamp(System.currentTimeMillis());
-				if (res.has("success") && res.getInt("success") > 0) {
-					notif.setNotifStatus("S");
-					notif.setResponseTime(timestamp1);
-				}
-				else {
-					notif.setNotifStatus("F");
-					notif.setResponseTime(timestamp1);
-				}
-				
-				// notif.setTokenId(listUserRef.get(0).getTokenId());
-				notifService.saveOrUpdate(notif);
-
-				MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
-				response.setMsg("insert token success ");
-				response.setStatus(0);
-				response.setData(resp);
-					
-				return new ResponseEntity(response, HttpStatus.CREATED);
-		
-			} else {
-				MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
-				response.setMsg("no data");
-				response.setStatus(1);
-				return new ResponseEntity(response, HttpStatus.BAD_REQUEST);
+				payload.setReceiver(receiverData);
+				List<CustomField> customList = customService.getCustomFieldByMsgId(listMessage.get(s).getMsgId());
+		        Map<String, String> result1 = customList.stream().collect(
+		                Collectors.toMap(CustomField::getKeyName, CustomField::getKeyValue));
+				payload.setData(result1);
+				messageSender.sendMessage(rabbitTemplate, exchange, routingKey, payload);
+				payList.add(payload);
 			}
-
 		} catch (Exception ex) {
 			log.error("Exception occurred while save application ", ex);
-			MessageResponse response = new MessageResponse();
 			response.setMsg(ex.getMessage());
 			response.setStatus(-1);
+				
+			return new ResponseEntity(payList, HttpStatus.BAD_REQUEST);
+		}
+		return new ResponseEntity(payList, HttpStatus.OK);
+	}
+
+	@PostMapping("/initmsg")
+	public ResponseEntity<?> initMessageForQuese(@RequestBody List<Payload> payloads) {
+
+		/* Sending to Message Queue */
+		MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
+		try {
+			if(payloads != null && payloads.size() > 0) {
+				for (Payload payload : payloads) {
+					if(payload.getReceiver() != null && payload.getReceiver().size() > 0 ) {
+						
+						if(payload.getMessage().getAppId() == null) {
+							response.setMsg("insert message fail not applcation for send notification");
+							response.setStatus(1);
+							return new ResponseEntity(response, HttpStatus.OK);
+							
+						}else {
+							Application appli = appService.getApplicationById(payload.getMessage().getAppId());
+							if(appli == null) {
+								response.setMsg("insert message fail not applcation for send notification");
+								response.setStatus(1);
+									
+								return new ResponseEntity(response, HttpStatus.OK);
+							}
+						}
+						/*for (String receivers : payload.getReceiver()) {
+							List<TokenDevice> listUserRef = tokenDeviceService.findTokenByUserRefAndAppId(receivers,payload.getMessage().getAppId());
+							if(listUserRef != null && listUserRef.size() > 0) {
+								
+							}
+						}*/
+						//start --->  set application ที่จะส่ง notify
+						Application app = new Application();
+						app.setAppId(payload.getMessage().getAppId());
+						//end ---> set application ที่จะส่ง notify
+						
+						//start ---> set Message default for q  -->   ที่จะส่ง notify
+						Message msg = new Message();
+						msg.setApplication(app);
+						msg.setBadge(payload.getMessage().getBadge());
+						msg.setBody(payload.getMessage().getBody());
+						msg.setBroadcast(false);
+						msg.setClickAction(payload.getMessage().getClickAction());
+						msg.setMsgType(Message.enum_msg_type.valueOf(payload.getMessage().getMsgType()));
+						msg.setPriority(payload.getMessage().getPriority());
+						msg.setSound(payload.getMessage().getSound());
+						msg.setTimeToLive(payload.getMessage().getTimeToLive());
+						msg.setTitle(payload.getMessage().getTitle());
+						msg.setSendTime(new Timestamp(System.currentTimeMillis()));
+						msg.setQueue(true);
+						msg.setMessageStatus("N");
+						Integer id = messageService.saveOrUpdate(msg);
+						//end ---> set Message default for q  -->   ที่จะส่ง notify
+						
+						//start ---> set CusTomField default for q  -->   ที่จะส่ง notify
+						JSONObject data = new JSONObject();
+						if (payload.getData().size() > 0) {
+							CustomField cus = null;
+							for (Map.Entry<String, String> entry : payload.getData().entrySet()) {
+								cus = new CustomField();
+								cus.setMsgId(id);
+								cus.setKeyName(entry.getKey());
+								cus.setKeyValue(entry.getValue());
+								data.put(entry.getKey(), entry.getValue());
+								//cusSet.add(cus);
+								customService.saveOrUpdate(cus);
+								System.out.println(">>>>>>>>>>>> "+entry.getKey()+" "+entry.getValue());
+							}
+						}
+						//end ---> set CusTomField default for q  -->   ที่จะส่ง notify
+						
+						//start ---> set Receiver default for q  -->   ที่จะส่ง notify
+						Receiver rec = null;
+						for (String recStr : payload.getReceiver()) {
+							rec = new Receiver();
+							rec.setMsgId(id);
+							rec.setUserRef(recStr);
+							rec.setNotifStatus("N");
+							recService.saveOrUpdate(rec);
+						}
+						
+						response.setMsg("insert message success ");
+						response.setStatus(0);
+							
+						//end ---> set Receiver default for q  -->   ที่จะส่ง notify
+					}else {
+						response.setMsg("insert message fail not receiver for send notification");
+						response.setStatus(1);
+							
+						
+					}
+				}
+			}else {
+				
+				response.setMsg("no list message");
+				response.setStatus(1);
+					
+				return new ResponseEntity(response, HttpStatus.OK);
+			}
+			
+			
+			
+
+		
+			//messageService.saveOrUpdate(message);
+		} catch (Exception ex) {
+			log.error("Exception occurred while save application ", ex);
+			response.setMsg(ex.getMessage());
+			response.setStatus(-1);
+				
 			return new ResponseEntity(response, HttpStatus.BAD_REQUEST);
 		}
+		return new ResponseEntity(response, HttpStatus.OK);
 	}
 	
-	
-	@PostMapping("/push2")
+	/*
+	 *  push realtime with format 
+		{
+			"message" :{
+				"msgId": null,
+				"appId" : "1", 
+				"msgType" : "INFO", 
+				"priority" : "H" ,
+				"timeToLive" : 1, 
+				"title" : "title notify4", 
+				"body" : "body notify", 
+				"sound" : "default", 
+				"badge" : "1",
+				"clickAction" : "FCM_PLUGIN_ACTIVITY",
+				"isBroadcast"  : true
+			},
+			"receiver" : ["80008839"],
+			"data" : {
+				"a":"สวัสดี",
+				"b":"c"
+			}
+		}
+	 *  
+	 */
+	@PostMapping("/push")
 	public ResponseEntity<?> pushNotification2(@RequestBody Payload payload) {
 
 		/* Sending to Message Queue */

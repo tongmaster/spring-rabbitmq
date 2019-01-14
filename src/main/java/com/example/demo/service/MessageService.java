@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.model.Message;
+import com.example.demo.model.TokenDevice;
 import com.example.demo.repo.MessageRepository;
 
 @Service
@@ -30,8 +31,26 @@ public class MessageService {
     	Message a = messageRepository.save(person);
     	return a.getMsgId();
     }
+    
+    public int  updateByMsgId(Message msg) {
+    	//return messageRepository.save(person);
+    	System.out.println(msg.getMessageStatus()  + "  "+msg.getMsgId());
+    	return messageRepository.updateMessageByMsgId(msg.getMessageStatus() , msg.getMsgId());
+    }
 
     public void delete(int id) {
     	messageRepository.deleteById(id);
     }
+    
+    public List<Message> findMessageByIsQueueAndStatusN() {
+    	return messageRepository.findMessageByIsQueueAndStatusN();
+    }
+    
+    public List<Message> findMessageByQueue(boolean isQueue , String msgStatus) {
+    	return messageRepository.findMessageByQueue(isQueue, msgStatus);
+    }
+    
+    
+    
+    
 }

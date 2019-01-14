@@ -26,4 +26,8 @@ public class CustomService {
 	    public CustomField getCustomFieldById(CustomFieldId customFieldid) {
 	        return customRepository.findById(customFieldid).get();
 	    }
+	    
+	    public List<CustomField> getCustomFieldByMsgId(Integer msgId) {
+	        return customRepository.findByMsgId(msgId);
+	    }
 }

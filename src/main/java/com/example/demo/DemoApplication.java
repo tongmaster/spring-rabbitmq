@@ -7,8 +7,8 @@ import org.springframework.context.annotation.ComponentScan;
 //@SpringBootApplication
 //(scanBasePackages={"com.example.demo.controller"})
 public class DemoApplication {
-
-/*	public static void main(String[] args) {
+/*
+	public static void main(String[] args) {
 		SpringApplication.run(DemoApplication.class, args);
 	}*/
 

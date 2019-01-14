@@ -23,11 +23,15 @@ import org.springframework.messaging.handler.annotation.support.DefaultMessageHa
 import com.example.config.ApplicationConfigReader;
 
 
+
 @EnableRabbit
 @SpringBootApplication
 public class MsgqApplication extends SpringBootServletInitializer implements RabbitListenerConfigurer {
 	
-	
+	public static void main(String[] args) {
+		SpringApplication.run(MsgqApplication.class, args);
+	}
+
 	@Autowired
 	private ApplicationConfigReader applicationConfig;
 	
@@ -39,10 +43,7 @@ public class MsgqApplication extends SpringBootServletInitializer implements Rab
 		this.applicationConfig = applicationConfig;
 	}
 	
-	public static void main(String[] args) {
-		SpringApplication.run(MsgqApplication.class, args);
-	}
-
+	
 	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
 		return application.sources(MsgqApplication.class);
 	}
