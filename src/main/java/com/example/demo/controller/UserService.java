@@ -521,17 +521,8 @@ public class UserService {
 					notification.put("time_to_live", payload.getMessage().getClickAction());
 					body.put("notification", notification);
 					Integer id = messageService.saveOrUpdate(msg);
-					//Set<Receiver> recSet = new HashSet<Receiver>();
-					// insert receiver
-					List<TokenDevice> listUserRef = tokenDeviceService.getTokenByUserRef(payload.getReceiver().get(0));
-					body.put("to", listUserRef.get(0).getToken());
-					Receiver rec = new Receiver();
-					/*rec.setMsgId(id);
-					rec.setUserRef(payload.getReceiver().get(0));
-					rec.setNotifStatus("N");
-					recService.saveOrUpdate(rec);*/
 					
-					//Set<CustomField> cusSet = new HashSet<>();
+					
 					JSONObject data = new JSONObject();
 					if (payload.getData().size() > 0) {
 						CustomField cus = null;
@@ -546,6 +537,37 @@ public class UserService {
 							System.out.println(">>>>>>>>>>>> "+entry.getKey()+" "+entry.getValue());
 						}
 					}
+					//Set<Receiver> recSet = new HashSet<Receiver>();
+					// insert receiver
+					JSONArray array = new JSONArray();
+					JSONArray arrayToken = new JSONArray();
+					List<TokenDevice> listUserRef = tokenDeviceService.findTokenByUserRefAndAppId(payload.getReceiver().get(0),payload.getMessage().getAppId());
+					if(listUserRef.size() == 1) {
+						body.put("to", listUserRef.get(0).getToken());
+						JSONObject objNotifResp =new JSONObject();
+						objNotifResp.put("tokenId", listUserRef.get(0).getTokenId());
+						objNotifResp.put("token", listUserRef.get(0).getToken());
+						arrayToken.put(listUserRef.get(0).getToken());
+						array.put(objNotifResp);
+					}
+					else {
+						for (int i = 0; i < listUserRef.size(); i++) {
+							JSONObject objNotifResp =new JSONObject();
+							objNotifResp.put("tokenId", listUserRef.get(i).getTokenId());
+							objNotifResp.put("token", listUserRef.get(i).getToken());
+							arrayToken.put(listUserRef.get(i).getToken());
+							array.put(objNotifResp);
+						}
+						body.put("registration_ids", arrayToken);
+					}
+					
+					/*rec.setMsgId(id);
+					rec.setUserRef(payload.getReceiver().get(0));
+					rec.setNotifStatus("N");
+					recService.saveOrUpdate(rec);*/
+					
+					//Set<CustomField> cusSet = new HashSet<>();
+					
 					
 					Notif notif = new Notif();
 					notif.setNotifStatus("N");
@@ -559,13 +581,28 @@ public class UserService {
 					System.out.println(" >>> " + resp);
 					JSONObject res = new JSONObject(resp);
 					notif.setResponseBody(res.toString());
-					if (res.has("success") && res.getInt("success") > 0) {
+					Receiver rec = new Receiver();
+					if (res.has("success") && res.getInt("success") > 0 && res.getInt("failure") == 0) {
 						notif.setNotifStatus("S");
 						notif.setResponseTime(new Timestamp(System.currentTimeMillis()));
 						rec.setMsgId(id);
 						rec.setUserRef(payload.getReceiver().get(0));
 						rec.setNotifStatus("S");
 						recService.saveOrUpdate(rec);
+						
+						Notif resultNotif = notifService.saveOrUpdate(notif);
+						
+						
+						List<FcmResult> fcmListResp = resp.getResults();
+						
+						for (int i = 0; i < fcmListResp.size(); i++) {
+							 NotifResponse nfr = new NotifResponse();
+							 nfr.setResponseId(0);
+							 JSONObject obj = array.getJSONObject(i);
+							 nfr.setTokenId(obj.getInt("tokenId"));
+							 nfr.setNotifUuid(resultNotif.getNotifUuid());
+							 notifRespService.saveOrUpdate(nfr);	
+						}
 					}
 					else {
 						notif.setNotifStatus("F");
@@ -574,17 +611,73 @@ public class UserService {
 						rec.setUserRef(payload.getReceiver().get(0));
 						rec.setNotifStatus("F");
 						recService.saveOrUpdate(rec);
+						Notif resultNotif = notifService.saveOrUpdate(notif);
+						
+						List<FcmResult> fcmListResp = resp.getResults();
+						
+						for (int i = 0; i < fcmListResp.size(); i++) {
+							FcmResult fcmResult = fcmListResp.get(i);
+						//for (FcmResult fcmResult : fcmListResp) {
+							System.out.println(fcmResult.getError());
+							System.out.println(fcmResult.getMessage_id());
+							if(fcmResult.getError() != null) {
+								 CodeResponse insertReponseCode = codeResponseService.getCodeRespByName(fcmResult.getError());
+								 if(insertReponseCode != null) {
+									 System.out.println(insertReponseCode.getResponseId());
+									 //notif.setResponseId(insertReponseCode.getResponseId());
+									 //for (int i = 0; i < array.length(); i++) {
+										 NotifResponse nfr = new NotifResponse();
+										 nfr.setResponseId(insertReponseCode.getResponseId());
+										 JSONObject obj = array.getJSONObject(i);
+										 nfr.setTokenId(obj.getInt("tokenId"));
+										 nfr.setNotifUuid(resultNotif.getNotifUuid());
+										 notifRespService.saveOrUpdate(nfr);	
+									 //}
+									 
+								 } else {
+									 CodeResponse codeRep = new CodeResponse();
+									 List<CodeResponse> lastId =  codeResponseService.findLastId();
+									 codeRep.setResponseId(lastId.get(0).getResponseId()+1);
+									 codeRep.setResponseCode(fcmResult.getError());
+									 CodeResponse a = codeResponseService.saveOrUpdate(codeRep);
+									 
+									 System.out.println("++++++++++++++++++++>>>>>>>>>>>>>> "+a.getResponseId());
+									 //notif.setResponseId(codeRep.getResponseId());
+									 //for (int i = 0; i < array.length(); i++) {
+										 NotifResponse nfr = new NotifResponse();
+										 nfr.setResponseId(a.getResponseId());
+										 JSONObject obj = array.getJSONObject(i);
+										 nfr.setTokenId(obj.getInt("tokenId"));
+										 nfr.setNotifUuid(resultNotif.getNotifUuid());
+										 notifRespService.saveOrUpdate(nfr);	
+									 //}
+								 }
+								 
+							}else {
+								System.out.println("8888888888888888>>>>>>>>>>>>>> "+resultNotif.getNotifUuid());
+								//for (int i = 0; i < array.length(); i++) {
+								
+									 NotifResponse nfr = new NotifResponse();
+									 nfr.setResponseId(0);
+									 JSONObject obj = array.getJSONObject(i);
+									 
+									 nfr.setTokenId(obj.getInt("tokenId"));
+									 nfr.setNotifUuid(resultNotif.getNotifUuid());
+										System.out.println("8888888888888888>>>>>>>>>>>>>> "+resultNotif.getNotifUuid()+"  "+obj.getInt("tokenId")+"  "+0);
+									 notifRespService.saveOrUpdate(nfr); 	
+								// }
+							}
+							
+						}
 					}
-					
-					// notif.setTokenId(listUserRef.get(0).getTokenId());
-					notifService.saveOrUpdate(notif);
-
 					MessageResponse<FcmResponse> response = new MessageResponse<FcmResponse>();
 					response.setMsg("insert token success ");
 					response.setStatus(0);
 					response.setData(resp);
 						
 					return new ResponseEntity(response, HttpStatus.OK);
+				
+					
 					
 				
 				}
@@ -672,6 +765,7 @@ public class UserService {
 					JSONObject res = new JSONObject(resp);
 					
 					notif.setResponseBody(res.toString());
+					//กรณีที่ success ทั้งหมด -> fcm ResponseCode > 0 ทุกอัน 
 					if (res.has("success") && res.getInt("success") > 0 &&  res.getInt("failure") == 0) {
 						notif.setNotifStatus("S");
 						notif.setResponseTime(new Timestamp(System.currentTimeMillis()));
@@ -685,18 +779,18 @@ public class UserService {
 						}
 						Notif resultNotif = notifService.saveOrUpdate(notif);
 						List<FcmResult> fcmListResp = resp.getResults();
-						for (FcmResult fcmResult : fcmListResp) {
-							System.out.println("success all >> "+fcmResult.getMessage_id());
-							
-						/*	NotifResponse nfr = new NotifResponse();
-							 nfr.setResponseId(0);
-							 nfr.setTokenId();
-							 nfr.setNotifUuid(notifUuid);
-							 notifRespService.saveOrUpdate(nfr);*/
-						}
 						
+						for (int i = 0; i < fcmListResp.size(); i++) {
+							 NotifResponse nfr = new NotifResponse();
+							 nfr.setResponseId(0);
+							 JSONObject obj = array.getJSONObject(i);
+							 nfr.setTokenId(obj.getInt("tokenId"));
+							 nfr.setNotifUuid(resultNotif.getNotifUuid());
+							 notifRespService.saveOrUpdate(nfr);	
+						}
 					
 					}
+					//กรณีที่ success แค่บ้างรายการ 
 					else 
 					{
 						notif.setNotifStatus("F");
@@ -722,12 +816,12 @@ public class UserService {
 									 System.out.println(insertReponseCode.getResponseId());
 									 //notif.setResponseId(insertReponseCode.getResponseId());
 									 //for (int i = 0; i < array.length(); i++) {
-										 NotifResponse nfr = new NotifResponse();
-										 nfr.setResponseId(insertReponseCode.getResponseId());
-										 JSONObject obj = array.getJSONObject(i);
-										 nfr.setTokenId(obj.getInt("tokenId"));
-										 nfr.setNotifUuid(resultNotif.getNotifUuid());
-										 notifRespService.saveOrUpdate(nfr);	
+									 NotifResponse nfr = new NotifResponse();
+									 nfr.setResponseId(insertReponseCode.getResponseId());
+									 JSONObject obj = array.getJSONObject(i);
+									 nfr.setTokenId(obj.getInt("tokenId"));
+									 nfr.setNotifUuid(resultNotif.getNotifUuid());
+									 notifRespService.saveOrUpdate(nfr);	
 									 //}
 									 
 								 } else {
@@ -740,28 +834,28 @@ public class UserService {
 									 System.out.println("++++++++++++++++++++>>>>>>>>>>>>>> "+a.getResponseId());
 									 //notif.setResponseId(codeRep.getResponseId());
 									 //for (int i = 0; i < array.length(); i++) {
-										 NotifResponse nfr = new NotifResponse();
-										 nfr.setResponseId(a.getResponseId());
-										 JSONObject obj = array.getJSONObject(i);
-										 nfr.setTokenId(obj.getInt("tokenId"));
-										 nfr.setNotifUuid(resultNotif.getNotifUuid());
-										 notifRespService.saveOrUpdate(nfr);	
+									 NotifResponse nfr = new NotifResponse();
+									 nfr.setResponseId(a.getResponseId());
+									 JSONObject obj = array.getJSONObject(i);
+									 nfr.setTokenId(obj.getInt("tokenId"));
+									 nfr.setNotifUuid(resultNotif.getNotifUuid());
+									 notifRespService.saveOrUpdate(nfr);	
 									 //}
 								 }
 								 
 							}else {
 								System.out.println("8888888888888888>>>>>>>>>>>>>> "+resultNotif.getNotifUuid());
-								//for (int i = 0; i < array.length(); i++) {
-								
-									 NotifResponse nfr = new NotifResponse();
-									 nfr.setResponseId(0);
-									 JSONObject obj = array.getJSONObject(i);
-									 
-									 nfr.setTokenId(obj.getInt("tokenId"));
-									 nfr.setNotifUuid(resultNotif.getNotifUuid());
-										System.out.println("8888888888888888>>>>>>>>>>>>>> "+resultNotif.getNotifUuid()+"  "+obj.getInt("tokenId")+"  "+0);
-									 notifRespService.saveOrUpdate(nfr); 	
-								// }
+							//for (int i = 0; i < array.length(); i++) {
+							
+								NotifResponse nfr = new NotifResponse();
+								nfr.setResponseId(0);
+								JSONObject obj = array.getJSONObject(i);
+								 
+								nfr.setTokenId(obj.getInt("tokenId"));
+								nfr.setNotifUuid(resultNotif.getNotifUuid());
+									System.out.println("8888888888888888>>>>>>>>>>>>>> "+resultNotif.getNotifUuid()+"  "+obj.getInt("tokenId")+"  "+0);
+								notifRespService.saveOrUpdate(nfr); 	
+							// }
 							}
 							
 						}

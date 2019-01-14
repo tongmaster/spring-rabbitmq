@@ -14,8 +14,8 @@ public class NotifResponseService {
     @Autowired
     NotifResponseRepository notifRespRepository;
     
-    public void saveOrUpdate(NotifResponse app) {
-    	notifRespRepository.save(app);
+    public NotifResponse saveOrUpdate(NotifResponse app) {
+    	return notifRespRepository.save(app);
     }
     
     public List<NotifResponse> getAllNotifResp() {
