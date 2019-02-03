@@ -92,11 +92,11 @@
 			<version>2.9.2</version>
 		</dependency>
 
-		<dependency>
+	<!-- 	<dependency>
 			<groupId>utility.database</groupId>
 			<artifactId>DBUtility</artifactId>
 			<version>1.0.0</version>
-		</dependency>
+		</dependency> -->
 	</dependencies>
 
 	<build>

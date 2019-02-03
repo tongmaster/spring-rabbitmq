@@ -33,8 +33,8 @@ import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
-import utility.database.ConnectionBean;
-import utility.database.DBConnectionFile;
+//import utility.database.ConnectionBean;
+//import utility.database.DBConnectionFile;
 
 @EnableRabbit
 @SpringBootApplication
@@ -167,24 +167,24 @@ public class MsgqApplication extends SpringBootServletInitializer implements Rab
 	 * }
 	 */
 
-	@Bean
-	@Primary
-	public DataSource dataSource() throws IOException {
-		File fileEncrypted = new ClassPathResource("dbconfig.cfg").getFile();
-		File EncryptKey = new ClassPathResource("dbkey.cfg").getFile();
-//		File fileEncrypted = new File("/c/tools/dbconfig.cfg");
-//		File EncryptKey = new File("/c/tools/dbkey.cfg");
-		DBConnectionFile fileDB = new DBConnectionFile(fileEncrypted, EncryptKey, "DBCommunication");
-		System.out.println();
-		ConnectionBean con = fileDB.getConnectionBean();
-		String urlPostgres = "jdbc:postgresql://" + con.getHostName() + ":" + con.getPortNo() + "/"
-				+ con.getDatabaseName();
-		System.out.println(urlPostgres);
-		DataSource data = DataSourceBuilder.create().username(con.getUserName()).password(con.getPassword())
-				.url(urlPostgres).build();
-		return data;
-
-	}
+//	@Bean
+//	@Primary
+//	public DataSource dataSource() throws IOException {
+//		File fileEncrypted = new ClassPathResource("dbconfig.cfg").getFile();
+//		File EncryptKey = new ClassPathResource("dbkey.cfg").getFile();
+////		File fileEncrypted = new File("/c/tools/dbconfig.cfg");
+////		File EncryptKey = new File("/c/tools/dbkey.cfg");
+//		DBConnectionFile fileDB = new DBConnectionFile(fileEncrypted, EncryptKey, "DBCommunication");
+//		System.out.println();
+//		ConnectionBean con = fileDB.getConnectionBean();
+//		String urlPostgres = "jdbc:postgresql://" + con.getHostName() + ":" + con.getPortNo() + "/"
+//				+ con.getDatabaseName();
+//		System.out.println(urlPostgres);
+//		DataSource data = DataSourceBuilder.create().username(con.getUserName()).password(con.getPassword())
+//				.url(urlPostgres).build();
+//		return data;
+//
+//	}
 
 	/*
 	 * @Autowired private JdbcTemplate jdbcTemplate;
